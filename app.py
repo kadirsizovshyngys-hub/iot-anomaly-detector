@@ -362,17 +362,24 @@ def load_data(uploaded_file):
         return pd.read_csv(uploaded_file), uploaded_file.name
 
 def preprocess(df, scaler, feature_cols):
-    df = df.replace([np.inf, -np.inf], np.nan).dropna().reset_index(drop=True)
+    df = df.replace([np.inf, -np.inf], np.nan).reset_index(drop=True)
+    df.columns = df.columns.str.strip()
+    rename_map = {col: col.replace(' ', '_').replace('-', '_') for col in df.columns}
+    df = df.rename(columns=rename_map)
+    df = df.dropna().reset_index(drop=True)
     eps = 1e-9
-    if 'Packet_Rate' not in df.columns:
-        df['Packet_Rate']     = df['Packets'] / (df['Flow_Duration'] + eps)
-    if 'Byte_Rate' not in df.columns:
-        df['Byte_Rate']       = df['Bytes']   / (df['Flow_Duration'] + eps)
-    if 'Packet_Size_Avg' not in df.columns:
-        df['Packet_Size_Avg'] = df['Bytes']   / (df['Packets'] + eps)
+    has_packets  = 'Packets' in df.columns
+    has_bytes    = 'Bytes' in df.columns
+    has_duration = 'Flow_Duration' in df.columns
+    if has_packets and has_duration and 'Packet_Rate' not in df.columns:
+        df['Packet_Rate'] = df['Packets'] / (df['Flow_Duration'] + eps)
+    if has_bytes and has_duration and 'Byte_Rate' not in df.columns:
+        df['Byte_Rate'] = df['Bytes'] / (df['Flow_Duration'] + eps)
+    if has_bytes and has_packets and 'Packet_Size_Avg' not in df.columns:
+        df['Packet_Size_Avg'] = df['Bytes'] / (df['Packets'] + eps)
     missing = [c for c in feature_cols if c not in df.columns]
     if missing:
-        return None, None, f"Отсутствуют колонки: {missing}"
+        return None, None, f"Отсутствуют колонки: {missing}. Доступные: {list(df.columns)}"
     X = df[feature_cols].copy()
     return df, scaler.transform(X), None
 
