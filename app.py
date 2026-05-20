@@ -339,7 +339,7 @@ def train_model():
         max_depth=20,
         min_samples_split=3,
         min_samples_leaf=1,
-        class_weight={'Normal': 1, 'DDoS': 3, 'PortScan': 3},
+        class_weight='balanced',
         max_features='sqrt',
         random_state=42,
         n_jobs=-1
